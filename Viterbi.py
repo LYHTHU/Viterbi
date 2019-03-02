@@ -4,11 +4,11 @@ import numpy as np
 class Viterbi:
     def __init__(self):
         self.trainPath = "./WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_02-21.pos"
-        self.A = dict()  # A[(i, j)] = P(state j | state i), trans; But in training it stores Count(i, j)
-        self.B = dict()  # B[(o_i, j)] = P(word o_i | state j), emit But in training it stores Count(oi, j)
+        self.A_dict = dict()  # A[(i, j)] = P(state j | state i), trans; But in training it stores Count(i, j)
+        self.B_dict = dict()  # B[(o_i, j)] = P(word o_i | state j), emit But in training it stores Count(oi, j)
+
         self.sumstate = {"start": 0, "end": 0}   # sum[j] = Count(j)
         self.states = []
-
 
     def train(self):
         # WSJ_02 - 21. pos: words and states for training corpus
@@ -33,11 +33,12 @@ class Viterbi:
                 stateSeq.append(line[1])
                 wordSeq.append(line[0])
 
-        for key in self.A:
-            self.A[key] = self.A[key] / self.sumstate[key[0]]
-        for key in self.B:
-            self.B[key] = self.B[key] / self.sumstate[key[1]]
+        for key in self.A_dict:
+            self.A_dict[key] = self.A_dict[key] / self.sumstate[key[0]]
+        for key in self.B_dict:
+            self.B_dict[key] = self.B_dict[key] / self.sumstate[key[1]]
 
+        self.states = [key for key in self.sumstate if key != "start" and key != "end"]
         file.close()
 
     def execSentence(self, stateSeq, wordSeq):
@@ -49,29 +50,30 @@ class Viterbi:
             else:
                 self.sumstate[elem] = 1
 
-            if (wordSeq[i], stateSeq[i]) in self.B:
-                self.B[wordSeq[i], stateSeq[i]] += 1
+            if (wordSeq[i], stateSeq[i]) in self.B_dict:
+                self.B_dict[wordSeq[i], stateSeq[i]] += 1
             else:
-                self.B[wordSeq[i], stateSeq[i]] = 1
+                self.B_dict[wordSeq[i], stateSeq[i]] = 1
 
             if i == 0:
-                if (stateSeq[i], "start") in self.A:
-                    self.A["start", stateSeq[i]] += 1
+                if (stateSeq[i], "start") in self.A_dict:
+                    self.A_dict["start", stateSeq[i]] += 1
                 else:
-                    self.A["start", stateSeq[i]] = 1
+                    self.A_dict["start", stateSeq[i]] = 1
 
             if i == len(stateSeq) - 1:
-                if (stateSeq[i], "end") in self.A:
-                    self.A[stateSeq[i], "end"] += 1
+                if (stateSeq[i], "end") in self.A_dict:
+                    self.A_dict[stateSeq[i], "end"] += 1
                 else:
-                    self.A[stateSeq[i], "end"] = 1
+                    self.A_dict[stateSeq[i], "end"] = 1
             else:
-                if(stateSeq[i], stateSeq[i+1]) in self.A:
-                    self.A[stateSeq[i], stateSeq[i+1]] += 1
+                if(stateSeq[i], stateSeq[i+1]) in self.A_dict:
+                    self.A_dict[stateSeq[i], stateSeq[i+1]] += 1
                 else:
-                    self.A[stateSeq[i], stateSeq[i+1]] = 1
+                    self.A_dict[stateSeq[i], stateSeq[i+1]] = 1
 
-        self.states = [key for key in self.sumstate if key != "start" and key != "end"]
+
+
 
     def forward(self, input):
         for i in range(0, 32):
@@ -89,8 +91,8 @@ class Viterbi:
 
         #   First column is not start, but the last column is the "end"
         for i, state in enumerate(self.states):
-            if self.A["start", state] > 0 and self.B[state, input[0]] > 0:
-                v[i, 0] = math.log(self.A["start", state]) + math.log(self.B[state, input[0]])
+            if self.A("start", state) > 0 and self.B(state, input[0]) > 0:
+                v[i, 0] = math.log(self.A("start", state)) + math.log(self.B(state, input[0]))
             else:
                 v[i, 0] = -math.inf
         for j, word in enumerate(input):
@@ -102,7 +104,7 @@ class Viterbi:
                 lastState = -1
                 for k, pre_state in enumerate(self.states):
                     if v[k, j-1] > -math.inf:
-                        prob = v[k, j-1] + math.log(self.A[pre_state, state]) + math.log(self.B[word, state])
+                        prob = v[k, j-1] + math.log(self.A(pre_state, state)) + math.log(self.B(word, state))
                         if prob > max:
                             max = prob
                             lastState = k
@@ -112,11 +114,20 @@ class Viterbi:
         for k, pre_state in enumerate(self.states):
             max = -math.inf
             if v[k, T-1] > -math.inf:
-                prob = v[k, T-1] + math.log(self.A[pre_state, "end"])
+                prob = v[k, T-1] + math.log(self.A(pre_state, "end"))
                 if prob > max:
                     max = prob
                     final_state = k
 
+    def A(self, pre_state, state):
+        if (pre_state, state) in self.A_dict:
+            return self.A_dict[pre_state, state]
+        return 0
+
+    def B(self, word, j):
+        if (word, j) in self.B_dict:
+            return self.B_dict[word, j]
+        return 0
 
 
 
