@@ -124,10 +124,21 @@ class Viterbi:
             return self.A_dict[pre_state, state]
         return 0
 
+    def A_log(self, pre_state, state, base=math.e):
+        if (pre_state, state) in self.A_dict:
+            return math.log(self.A_dict[pre_state, state], base)
+        return -math.inf
+
     def B(self, word, j):
         if (word, j) in self.B_dict:
             return self.B_dict[word, j]
         return 0
+
+    def B_log(self, word, j, base = math.e):
+        if (word, j) in self.B_dict:
+            return math.log(self.B_dict[word, j], base)
+        return -math.inf
+
 
 
 
