@@ -9,6 +9,8 @@ class Viterbi:
 
         self.sumstate = {"start": 0, "end": 0}   # sum[j] = Count(j)
         self.states = []
+        self.state2num = dict()
+        self.num2state = dict()
 
     def train(self):
         # WSJ_02 - 21. pos: words and states for training corpus
@@ -39,6 +41,10 @@ class Viterbi:
             self.B_dict[key] = self.B_dict[key] / self.sumstate[key[1]]
 
         self.states = [key for key in self.sumstate if key != "start" and key != "end"]
+
+        for i, state in enumerate(self.states):
+            self.state2num[state] = i
+            self.num2state[i] = state
         file.close()
 
     def execSentence(self, stateSeq, wordSeq):
@@ -72,15 +78,12 @@ class Viterbi:
                 else:
                     self.A_dict[stateSeq[i], stateSeq[i+1]] = 1
 
-
-
-
     def forward(self, input):
         for i in range(0, 32):
             input = input.replace(chr(i), " ")
         input = input.split(" ")
         print(input)
-        print(len(input))
+        # print(len(input))
 
         v = np.zeros((len(self.states), len(input)+1))
         v.fill(-math.inf)
@@ -91,8 +94,8 @@ class Viterbi:
 
         #   First column is not start, but the last column is the "end"
         for i, state in enumerate(self.states):
-            if self.A("start", state) > 0 and self.B(state, input[0]) > 0:
-                v[i, 0] = math.log(self.A("start", state)) + math.log(self.B(state, input[0]))
+            if self.A("start", state) > 0 and self.B(input[0], state) > 0:
+                v[i, 0] = math.log(self.A("start", state)) + math.log(self.B(input[0], state))
             else:
                 v[i, 0] = -math.inf
         for j, word in enumerate(input):
@@ -103,21 +106,41 @@ class Viterbi:
                 max = -math.inf
                 lastState = -1
                 for k, pre_state in enumerate(self.states):
-                    if v[k, j-1] > -math.inf:
-                        prob = v[k, j-1] + math.log(self.A(pre_state, state)) + math.log(self.B(word, state))
+                    if not math.isinf(v[k, j-1]) and not math.isnan(v[k, j-1]):
+                        prob = v[k, j-1] + self.A_log(pre_state, state) + self.B_log(word, state)
                         if prob > max:
                             max = prob
                             lastState = k
                 v[i, j] = max
-                trace[i, j] = k
+                trace[i, j] = lastState
+                # print("Last state[", lastState, "] = ", self.num2state[lastState])
         # end state
+        max = -math.inf
+        final_state = -1
         for k, pre_state in enumerate(self.states):
-            max = -math.inf
             if v[k, T-1] > -math.inf:
-                prob = v[k, T-1] + math.log(self.A(pre_state, "end"))
+                prob = v[k, T-1] + self.A_log(pre_state, "end")
                 if prob > max:
                     max = prob
                     final_state = k
+        # print("The state before final is ", trace[final_state, T-1], self.num2state[trace[final_state, T-1]])
+        path = []
+        print(trace)
+        self.back_path(final_state, T-1, trace, path)
+        return path
+
+    def back_path(self, state_int, t, trace, path):
+        if t == -1:
+            path = path.reverse()
+            return
+        if state_int == -1:
+            print("Trace error")
+            print(path)
+            exit(0)
+        state = self.num2state[state_int]
+        path.append(state)
+        pre_state_int = trace[state_int, t]
+        self.back_path(pre_state_int, t-1, trace, path)
 
     def A(self, pre_state, state):
         if (pre_state, state) in self.A_dict:
@@ -129,20 +152,24 @@ class Viterbi:
             return math.log(self.A_dict[pre_state, state], base)
         return -math.inf
 
-    def B(self, word, j):
-        if (word, j) in self.B_dict:
-            return self.B_dict[word, j]
+    def B(self, word, state):
+        if (word, state) in self.B_dict:
+            return self.B_dict[word, state]
         return 0
 
-    def B_log(self, word, j, base = math.e):
-        if (word, j) in self.B_dict:
-            return math.log(self.B_dict[word, j], base)
+    def B_log(self, word, state, base = math.e):
+        if (word, state) in self.B_dict:
+            return math.log(self.B_dict[word, state], base)
         return -math.inf
 
-
+    def print_A(self):
+        for pre_state in self.states:
+            for state in self.states:
+                print(self.A(pre_state, state), end=" ")
+            print()
 
 
 viterbi = Viterbi()
 viterbi.train()
-# print(len(viterbi.states), viterbi.states)
-viterbi.forward("I have a dream.")
+ret = viterbi.forward("I have a dream .")
+print(ret)
