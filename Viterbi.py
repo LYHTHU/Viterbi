@@ -115,6 +115,7 @@ class Viterbi:
                 trace[i, j] = lastState
                 # print("Last state[", lastState, "] = ", self.num2state[lastState])
         # end state
+
         max = -math.inf
         final_state = -1
         for k, pre_state in enumerate(self.states):
@@ -125,21 +126,16 @@ class Viterbi:
                     final_state = k
         # print("The state before final is ", trace[final_state, T-1], self.num2state[trace[final_state, T-1]])
         path = []
-        print(trace)
         self.back_path(final_state, T-1, trace, path)
         return path
 
     def back_path(self, state_int, t, trace, path):
-        if t == -1:
+        if state_int == -1:
             path = path.reverse()
             return
-        if state_int == -1:
-            print("Trace error")
-            print(path)
-            exit(0)
         state = self.num2state[state_int]
         path.append(state)
-        pre_state_int = trace[state_int, t]
+        pre_state_int = int(trace[state_int, t])
         self.back_path(pre_state_int, t-1, trace, path)
 
     def A(self, pre_state, state):
@@ -171,5 +167,5 @@ class Viterbi:
 
 viterbi = Viterbi()
 viterbi.train()
-ret = viterbi.forward("I have a dream .")
+ret = viterbi.forward("I want to play with her .")
 print(ret)
