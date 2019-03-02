@@ -3,6 +3,7 @@ class Viterbi:
         pass
 
     def train(self):
+        # WSJ_02 - 21. pos: words and tags for training corpus
         pass
 
     def forward(self):
