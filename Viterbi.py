@@ -81,8 +81,12 @@ class Viterbi:
         print(len(input))
 
         v = np.zeros((len(self.states), len(input)+1))
+        v.fill(-math.inf)
         trace = np.zeros((len(self.states), len(input)+1))
         trace.fill(-1)
+        T = len(input)
+        final_state = -1
+
         #   First column is not start, but the last column is the "end"
         for i, state in enumerate(self.states):
             if self.A["start", state] > 0 and self.B[state, input[0]] > 0:
@@ -93,11 +97,27 @@ class Viterbi:
             if j == 0:
                 continue
             # j >= 1
-
-            for i, state in enumerate(self.states): #  calc the v[i, j] (v[state, word])
+            for i, state in enumerate(self.states):  # calc the v[i, j] (v[state, word])
                 max = -math.inf
+                lastState = -1
                 for k, pre_state in enumerate(self.states):
-                    pass
+                    if v[k, j-1] > -math.inf:
+                        prob = v[k, j-1] + math.log(self.A[pre_state, state]) + math.log(self.B[word, state])
+                        if prob > max:
+                            max = prob
+                            lastState = k
+                v[i, j] = max
+                trace[i, j] = k
+        # end state
+        for k, pre_state in enumerate(self.states):
+            max = -math.inf
+            if v[k, T-1] > -math.inf:
+                prob = v[k, T-1] + math.log(self.A[pre_state, "end"])
+                if prob > max:
+                    max = prob
+                    final_state = k
+
+
 
 
 viterbi = Viterbi()
