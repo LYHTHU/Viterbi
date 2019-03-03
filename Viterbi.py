@@ -4,6 +4,7 @@ import numpy as np
 class Viterbi:
     def __init__(self):
         self.trainPath = "./WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_02-21.pos"
+        self.testPath = "./WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_24.words"
         self.A_dict = dict()  # A[(i, j)] = P(state j | state i), trans; But in training it stores Count(i, j)
         self.B_dict = dict()  # B[(o_i, j)] = P(word o_i | state j), emit But in training it stores Count(oi, j)
 
@@ -14,7 +15,7 @@ class Viterbi:
 
     def train(self):
         # WSJ_02 - 21. pos: words and states for training corpus
-        file = open(self.trainPath)
+        file = open(self.trainPath, "r")
         stateSeq = []
         wordSeq = []
         while True:
@@ -78,16 +79,36 @@ class Viterbi:
                 else:
                     self.A_dict[stateSeq[i], stateSeq[i+1]] = 1
 
-    def forward(self, input):
-        for i in range(0, 32):
-            input = input.replace(chr(i), " ")
-        input = input.split(" ")
-        print(input)
-        # print(len(input))
+    def test(self):
+        outPath = self.testPath
+        outPath = outPath[outPath.rfind("/")+1: outPath.rfind(".")] + ".pos"
+        testfile = open(self.testPath, "r")
+        testout = open(outPath, "w")
 
-        v = np.zeros((len(self.states), len(input)+1))
+        wordSeq = []
+
+        while True:
+            line = testfile.readline()
+            if not line:
+                break
+            for i in range(0, 32):
+                line = line.replace(chr(i), " ")
+            if line == " ":
+                # print(wordSeq)
+                stateSeq = self.forward(wordSeq)
+                self.writeFile(testout, wordSeq, stateSeq)
+                wordSeq = []
+            else:
+                line = line.split(" ")
+                wordSeq.append(line[0])
+
+        testfile.close()
+        testout.close()
+
+    def forward(self, input):  # input is a list like ["I", "like", "her", "."]
+        v = np.zeros((len(self.states), len(input)))
         v.fill(-math.inf)
-        trace = np.zeros((len(self.states), len(input)+1))
+        trace = np.zeros((len(self.states), len(input)))
         trace.fill(-1)
         T = len(input)
         final_state = -1
@@ -113,7 +134,6 @@ class Viterbi:
                             lastState = k
                 v[i, j] = max
                 trace[i, j] = lastState
-                # print("Last state[", lastState, "] = ", self.num2state[lastState])
         # end state
 
         max = -math.inf
@@ -164,8 +184,21 @@ class Viterbi:
                 print(self.A(pre_state, state), end=" ")
             print()
 
+    def stcs2lst(self, input):
+        for i in range(0, 32):
+            input = input.replace(chr(i), " ")
+        input = input.split(" ")
+        return input
+
+    def writeFile(self, outfile, wordSeq, stateSeq):
+        # print(wordSeq)
+        # print(stateSeq)
+        for i, word in enumerate(wordSeq):
+            outfile.write(wordSeq[i] + "\t" + stateSeq[i] + "\n")
+        outfile.write("\n")
 
 viterbi = Viterbi()
 viterbi.train()
-ret = viterbi.forward("I want to play with her .")
-print(ret)
+# ret = viterbi.forward("I want to play with her .")
+# print(ret)
+viterbi.test()
