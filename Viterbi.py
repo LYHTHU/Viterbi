@@ -96,6 +96,7 @@ class Viterbi:
             if line == " ":
                 # print(wordSeq)
                 stateSeq = self.forward(wordSeq)
+
                 self.writeFile(testout, wordSeq, stateSeq)
                 wordSeq = []
             else:
@@ -147,6 +148,10 @@ class Viterbi:
         # print("The state before final is ", trace[final_state, T-1], self.num2state[trace[final_state, T-1]])
         path = []
         self.back_path(final_state, T-1, trace, path)
+        if len(path) == 0:
+            for i in range(T):
+                print(i)
+                print(np.max(v[:, i]))
         return path
 
     def back_path(self, state_int, t, trace, path):
