@@ -145,19 +145,20 @@ class Viterbi:
                 if prob > max:
                     max = prob
                     final_state = k
-        # print("The state before final is ", trace[final_state, T-1], self.num2state[trace[final_state, T-1]])
         path = []
         self.back_path(final_state, T-1, trace, path)
-        if len(path) == 0:
-            for i in range(T):
-                print(i)
-                print(np.max(v[:, i]))
         return path
 
     def back_path(self, state_int, t, trace, path):
         if state_int == -1:
-            path = path.reverse()
-            return
+            if t == 0:
+                path = path.reverse()
+                return
+            else:
+                for i in range(t+1):
+                    path.append(self.num2state[0])
+                path = path.reverse()
+                return
         state = self.num2state[state_int]
         path.append(state)
         pre_state_int = int(trace[state_int, t])
@@ -198,9 +199,13 @@ class Viterbi:
     def writeFile(self, outfile, wordSeq, stateSeq):
         # print(wordSeq)
         # print(stateSeq)
+        # if len(wordSeq) != len(stateSeq):
+        #     print(wordSeq)
+        #     print(stateSeq)
         for i, word in enumerate(wordSeq):
             outfile.write(wordSeq[i] + "\t" + stateSeq[i] + "\n")
         outfile.write("\n")
+
 
 viterbi = Viterbi()
 viterbi.train()
