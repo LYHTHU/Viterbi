@@ -8,6 +8,7 @@ class Viterbi:
         self.A_dict = dict()  # A[(i, j)] = P(state j | state i), trans; But in training it stores Count(i, j)
         self.B_dict = dict()  # B[(o_i, j)] = P(word o_i | state j), emit But in training it stores Count(oi, j)
 
+        self.countNotAppear = 0
         self.sumstate = {"start": 0, "end": 0}   # sum[j] = Count(j)
         self.states = []
         self.state2num = dict()
@@ -102,7 +103,7 @@ class Viterbi:
             else:
                 line = line.split(" ")
                 wordSeq.append(line[0])
-
+        print("Count(Not appearing words) = ", self.countNotAppear)
         testfile.close()
         testout.close()
 
@@ -115,15 +116,26 @@ class Viterbi:
         final_state = -1
 
         #   First column is not start, but the last column is the "end"
+        showup = False
         for i, state in enumerate(self.states):
             if self.A("start", state) > 0 and self.B(input[0], state) > 0:
-                v[i, 0] = math.log(self.A("start", state)) + math.log(self.B(input[0], state))
+                showup = True
+                v[i, 0] = self.A_log("start", state) + self.B_log(input[0], state)
             else:
                 v[i, 0] = -math.inf
+
+        if not showup:
+            self.countNotAppear += 1
+            for i, state in enumerate(self.states):
+                v[i, 0] = self.A_log("start", state) + math.log(1./self.sumstate[state])
+
         for j, word in enumerate(input):
             if j == 0:
                 continue
             # j >= 1
+
+            showup = False
+
             for i, state in enumerate(self.states):  # calc the v[i, j] (v[state, word])
                 max = -math.inf
                 lastState = -1
@@ -131,10 +143,26 @@ class Viterbi:
                     if not math.isinf(v[k, j-1]) and not math.isnan(v[k, j-1]):
                         prob = v[k, j-1] + self.A_log(pre_state, state) + self.B_log(word, state)
                         if prob > max:
+                            showup = True
                             max = prob
                             lastState = k
+
                 v[i, j] = max
                 trace[i, j] = lastState
+
+            if not showup:
+                self.countNotAppear += 1
+                for i, state in enumerate(self.states):
+                    max = -math.inf
+                    lastState = -1
+                    for k, pre_state in enumerate(self.states):
+                        if not math.isinf(v[k, j - 1]) and not math.isnan(v[k, j - 1]):
+                            prob = v[k, j - 1] + self.A_log(pre_state, state) + math.log(1./self.sumstate[state])
+                            if prob > max:
+                                max = prob
+                                lastState = k
+                    v[i, j] = max
+                    trace[i, j] = lastState
         # end state
 
         max = -math.inf
@@ -155,6 +183,7 @@ class Viterbi:
                 path = path.reverse()
                 return
             else:
+                # print("Error in deal with not appearing word.")
                 for i in range(t+1):
                     path.append(self.num2state[0])
                 path = path.reverse()
