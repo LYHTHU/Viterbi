@@ -10,9 +10,17 @@ class Viterbi:
 
         self.countNotAppear = 0
         self.sumstate = {"start": 0, "end": 0}   # sum[j] = Count(j)
+        self.count_suffix = dict()
+        self.count_state_suffix = dict()
         self.states = []
         self.state2num = dict()
         self.num2state = dict()
+
+        self.prob_states = dict()
+        self.prob_suffix = dict()
+
+        self.sigma_state = 0
+        self.sigma_suffix = 0
 
     def train(self):
         # WSJ_02 - 21. pos: words and states for training corpus
@@ -47,12 +55,34 @@ class Viterbi:
         for i, state in enumerate(self.states):
             self.state2num[state] = i
             self.num2state[i] = state
+            self.prob_states[state] = self.sumstate[state] / self.sigma_state
+
+        for key in self.count_state_suffix:
+            self.count_state_suffix[key] = self.count_state_suffix[key] / self.count_suffix[key[1]]
+        for key in self.count_suffix:
+            self.prob_suffix[key] = self.count_suffix[key] / self.sigma_suffix
         file.close()
 
     def execSentence(self, stateSeq, wordSeq):
         self.sumstate["start"] += 1
         self.sumstate["end"] += 1
         for i, elem in enumerate(stateSeq):
+            # suffix count
+            length = min(10, len(wordSeq[i]))
+            for j in range(1, length+1):
+                suffix = wordSeq[i][len(wordSeq[i]) - j:]
+                self.sigma_suffix += 1
+                if suffix in self.count_suffix:
+                    self.count_suffix[suffix] += 1
+                else:
+                    self.count_suffix[suffix] = 1
+
+                if (elem, suffix) in self.count_state_suffix:
+                    self.count_state_suffix[elem, suffix] += 1
+                else:
+                    self.count_state_suffix[elem, suffix] = 1
+            #
+            self.sigma_state += 1
             if elem in self.sumstate:
                 self.sumstate[elem] += 1
             else:
@@ -214,7 +244,20 @@ class Viterbi:
         return -math.inf
 
     def B_log_not_appear(self, word, state, base = math.e):
-        return math.log(1. / self.sumstate[state])
+        find_suffix = False
+        length = min(len(word), 10)
+        max = 0
+        for i in range(1, length+1):
+            suffix = word[len(word)-i:]
+            if suffix in self.prob_suffix and (state, suffix) in self.count_state_suffix:
+                find_suffix = True
+                prob = self.count_state_suffix[state, suffix] * self.prob_suffix[suffix] / self.prob_states[state]
+                if prob > max:
+                    max = prob
+        if find_suffix:
+            return math.log(max, base)
+        else:
+            return math.log(1. / self.sumstate[state], base)
 
     def print_A(self):
         for pre_state in self.states:
