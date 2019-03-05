@@ -127,7 +127,7 @@ class Viterbi:
         if not showup:
             self.countNotAppear += 1
             for i, state in enumerate(self.states):
-                v[i, 0] = self.A_log("start", state) + math.log(1./self.sumstate[state])
+                v[i, 0] = self.A_log("start", state) + self.B_log_not_appear(input[0], state)
 
         for j, word in enumerate(input):
             if j == 0:
@@ -157,7 +157,7 @@ class Viterbi:
                     lastState = -1
                     for k, pre_state in enumerate(self.states):
                         if not math.isinf(v[k, j - 1]) and not math.isnan(v[k, j - 1]):
-                            prob = v[k, j - 1] + self.A_log(pre_state, state) + math.log(1./self.sumstate[state])
+                            prob = v[k, j - 1] + self.A_log(pre_state, state) + self.B_log_not_appear(word, state)
                             if prob > max:
                                 max = prob
                                 lastState = k
@@ -212,6 +212,9 @@ class Viterbi:
         if (word, state) in self.B_dict:
             return math.log(self.B_dict[word, state], base)
         return -math.inf
+
+    def B_log_not_appear(self, word, state, base = math.e):
+        return math.log(1. / self.sumstate[state])
 
     def print_A(self):
         for pre_state in self.states:
