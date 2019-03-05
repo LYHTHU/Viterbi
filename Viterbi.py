@@ -135,7 +135,7 @@ class Viterbi:
             else:
                 line = line.split(" ")
                 wordSeq.append(line[0])
-        print("Count(Not appearing words) = ", self.countNotAppear)
+        print("Count(Unknown words) = ", self.countNotAppear)
         testfile.close()
         testout.close()
 
@@ -274,7 +274,12 @@ start = time.time()
 
 viterbi = Viterbi()
 viterbi.train()
+
+trainend = time.time()
+
 viterbi.test()
 
 end = time.time()
-print("Running for : ", end-start, "s.")
+print("Running for: ", end-start, "s.")
+print("Training time: ", trainend - start, "s.")
+print("Test time: ", end - trainend, "s.")
