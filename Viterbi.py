@@ -1,5 +1,7 @@
 import math
 import numpy as np
+import time
+
 
 class Viterbi:
     def __init__(self):
@@ -143,9 +145,6 @@ class Viterbi:
         trace = np.zeros((len(self.states), len(input)))
         trace.fill(-1)
         T = len(input)
-        final_state = -1
-
-        #   First column is not start, but the last column is the "end"
         showup = False
         for i, state in enumerate(self.states):
             if self.A("start", state) > 0 and self.B(input[0], state) > 0:
@@ -209,15 +208,9 @@ class Viterbi:
 
     def back_path(self, state_int, t, trace, path):
         if state_int == -1:
-            if t == 0:
-                path = path.reverse()
-                return
-            else:
-                # print("Error in deal with not appearing word.")
-                for i in range(t+1):
-                    path.append(self.num2state[0])
-                path = path.reverse()
-                return
+            path = path.reverse()
+            return
+
         state = self.num2state[state_int]
         path.append(state)
         pre_state_int = int(trace[state_int, t])
@@ -272,18 +265,16 @@ class Viterbi:
         return input
 
     def writeFile(self, outfile, wordSeq, stateSeq):
-        # print(wordSeq)
-        # print(stateSeq)
-        # if len(wordSeq) != len(stateSeq):
-        #     print(wordSeq)
-        #     print(stateSeq)
         for i, word in enumerate(wordSeq):
             outfile.write(wordSeq[i] + "\t" + stateSeq[i] + "\n")
         outfile.write("\n")
 
 
+start = time.time()
+
 viterbi = Viterbi()
 viterbi.train()
-# ret = viterbi.forward("I want to play with her .")
-# print(ret)
 viterbi.test()
+
+end = time.time()
+print("Running for : ", end-start, "s.")
