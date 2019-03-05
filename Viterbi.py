@@ -184,9 +184,10 @@ class Viterbi:
                 for i, state in enumerate(self.states):
                     max = -math.inf
                     lastState = -1
+                    B_log_unknown = self.B_log_not_appear(word, state)
                     for k, pre_state in enumerate(self.states):
                         if not math.isinf(v[k, j - 1]) and not math.isnan(v[k, j - 1]):
-                            prob = v[k, j - 1] + self.A_log(pre_state, state) + self.B_log_not_appear(word, state)
+                            prob = v[k, j - 1] + self.A_log(pre_state, state) + B_log_unknown
                             if prob > max:
                                 max = prob
                                 lastState = k
@@ -277,7 +278,7 @@ viterbi.train()
 
 trainend = time.time()
 
-viterbi.test("./WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_23.words")
+viterbi.test("./WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_24.words")
 
 end = time.time()
 print("Running for: ", end-start, "s.")
