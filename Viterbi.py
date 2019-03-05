@@ -112,10 +112,10 @@ class Viterbi:
                 else:
                     self.A_dict[stateSeq[i], stateSeq[i+1]] = 1
 
-    def test(self):
-        outPath = self.testPath
+    def test(self, testPath = "./WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_24.words"):
+        outPath = testPath
         outPath = outPath[outPath.rfind("/")+1: outPath.rfind(".")] + ".pos"
-        testfile = open(self.testPath, "r")
+        testfile = open(testPath, "r")
         testout = open(outPath, "w")
 
         wordSeq = []
@@ -277,7 +277,7 @@ viterbi.train()
 
 trainend = time.time()
 
-viterbi.test()
+viterbi.test("./WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_23.words")
 
 end = time.time()
 print("Running for: ", end-start, "s.")
