@@ -147,14 +147,25 @@ class Trigram:
         for i, state in enumerate(self.states):
             if self.A("start", state) > 0 and self.B(input[0], state) > 0:
                 showup = True
-                v[i, 0] = self.A_log(None, "start", state) + self.B_log(input[0], state)
+                v[i, 0] = self.A_log("start", state) + self.B_log(input[0], state)
             else:
                 v[i, 0] = -math.inf
 
         if not showup:
             self.countNotAppear += 1
             for i, state in enumerate(self.states):
-                v[i, 0] = self.A_log(None, "start", state) + self.B_log_not_appear(input[0], state)
+                v[i, 0] = self.A_log("start", state) + self.B_log_not_appear(input[0], state)
+        for j, word in enumerate(input):
+            if j == 0:
+                continue
+            if j == 1:
+                for i, state in enumerate(self.states):
+                    max = -math.inf
+                    lastState = -1
+                    for k, pre_state_2 in enumerate(self.states):
+                        if not math.isinf(v[k, j - 1]) and not math.isnan(v[k, j - 1]):
+                            pass
+
 
         path = []
         # self.back_path(final_state, T-1, trace, path)
@@ -195,6 +206,9 @@ class Trigram:
         for i, word in enumerate(wordSeq):
             outfile.write(wordSeq[i] + "\t" + stateSeq[i] + "\n")
         outfile.write("\n")
+
+    def A_log(self, pre_state_2, state, base = math.e):
+        return -math.inf
 
     def A_log(self, pre_state_1, pre_state_2, state, base = math.e):
         return -math.inf
