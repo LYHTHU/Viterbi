@@ -207,11 +207,19 @@ class Trigram:
             outfile.write(wordSeq[i] + "\t" + stateSeq[i] + "\n")
         outfile.write("\n")
 
-    def A_log(self, pre_state_2, state, base = math.e):
+    def A_log(self, pre_state, state, base = math.e):
+        if (pre_state, state) in self.A_dict:
+            return math.log(self.A_dict[pre_state, state], base)
         return -math.inf
 
     def A_log(self, pre_state_1, pre_state_2, state, base = math.e):
-        return -math.inf
+        if (pre_state_1, pre_state_2, state) in self.A_dict:
+            l1, l2, l3 = self.get_lambda(pre_state_1, pre_state_2, state)
+            return math.log(l3 * self.A_dict[pre_state_1, pre_state_2, state] / self.A_dict[pre_state_1, pre_state_2] + l2*self.A_dict[pre_state_2, state] / self.A_dict[state] + l1*self.A_dict[state] / self.sigma_state, base)
+        return self.A_log(pre_state_2, state, base)
+
+    def get_lambda(self, pre_state_1, pre_state_2, state):
+        return 1/3,1/3,1/3
 
     def B_log(self, word, state, base = math.e):
         if (word, state) in self.B_dict:
