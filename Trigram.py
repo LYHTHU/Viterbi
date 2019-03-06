@@ -21,6 +21,7 @@ class Trigram:
 
         self.prob_states = dict()
         self.prob_suffix = dict()
+        self.sigma_words = 0
         self.sigma_state = 0
         self.sigma_suffix = 0
 
@@ -44,7 +45,6 @@ class Trigram:
                 stateSeq.append(line[1])
                 wordSeq.append(line[0])
 
-
         for key in self.B_dict:
             self.B_dict[key] = self.B_dict[key] / self.sumstate[key[1]]
 
@@ -59,11 +59,14 @@ class Trigram:
             self.count_state_suffix[key] = self.count_state_suffix[key] / self.count_suffix[key[1]]
         for key in self.count_suffix:
             self.prob_suffix[key] = self.count_suffix[key] / self.sigma_suffix
+
+        print("Training: Count(words) = ", self.sigma_words)
         file.close()
 
     def execSentence(self, stateSeq, wordSeq):
         self.sumstate["start"] += 1
         self.sumstate["end"] += 1
+        self.sigma_words += len(wordSeq)
         for i, elem in enumerate(stateSeq):
             # suffix count
             length = min(10, len(wordSeq[i]))
@@ -96,6 +99,11 @@ class Trigram:
                     self.A_dict["start", stateSeq[i]] += 1
                 else:
                     self.A_dict["start", stateSeq[i]] = 1
+                if i+1 < len(stateSeq):
+                    if ("start", stateSeq[i], stateSeq[i+1]) in self.A_dict:
+                        self.A_dict["start", stateSeq[i], stateSeq[i+1]] += 1
+                    else:
+                        self.A_dict["start", stateSeq[i], stateSeq[i+1]] = 1
 
             if i == len(stateSeq) - 1:
                 if (stateSeq[i], "end") in self.A_dict:
@@ -107,6 +115,11 @@ class Trigram:
                         self.A_dict[stateSeq[i - 1], stateSeq[i], "end"] += 1
                     else:
                         self.A_dict[stateSeq[i - 1], stateSeq[i], "end"] = 1
+                else:
+                    if ("start", stateSeq[i], "end") in self.A_dict:
+                        self.A_dict["start", stateSeq[i], "end"] += 1
+                    else:
+                        self.A_dict["start", stateSeq[i], "end"] = 1
             else:
                 if(stateSeq[i], stateSeq[i+1]) in self.A_dict:
                     self.A_dict[stateSeq[i], stateSeq[i+1]] += 1
@@ -119,11 +132,93 @@ class Trigram:
                     else:
                         self.A_dict[stateSeq[i - 1], stateSeq[i], stateSeq[i+1]] = 1
 
+            if wordSeq[i] in self.A_dict:
+                self.A_dict[wordSeq[i]] += 1
+            else:
+                self.A_dict[wordSeq[i]] = 1
+
     def forward(self, input):
-        pass
+        v = np.zeros((len(self.states), len(input)))
+        v.fill(-math.inf)
+        trace = np.zeros((len(self.states), len(input)))
+        trace.fill(-1)
+        T = len(input)
+        showup = False
+        for i, state in enumerate(self.states):
+            if self.A("start", state) > 0 and self.B(input[0], state) > 0:
+                showup = True
+                v[i, 0] = self.A_log(None, "start", state) + self.B_log(input[0], state)
+            else:
+                v[i, 0] = -math.inf
+
+        if not showup:
+            self.countNotAppear += 1
+            for i, state in enumerate(self.states):
+                v[i, 0] = self.A_log(None, "start", state) + self.B_log_not_appear(input[0], state)
+
+        path = []
+        # self.back_path(final_state, T-1, trace, path)
+        return path
 
     def test(self, testPath = "./WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_24.words"):
-        pass
+        outPath = testPath
+        outPath = outPath[outPath.rfind("/") + 1: outPath.rfind(".")] + ".pos"
+        testfile = open(testPath, "r")
+        testout = open(outPath, "w")
+
+        while True:
+            line = testfile.readline()
+            if not line:
+                break
+            for i in range(0, 32):
+                line = line.replace(chr(i), " ")
+            if line == " ":
+                # print(wordSeq)
+                stateSeq = self.forward(wordSeq)
+                self.writeFile(testout, wordSeq, stateSeq)
+                wordSeq = []
+            else:
+                line = line.split(" ")
+                wordSeq.append(line[0])
+
+        print("Count(Unknown words) = ", self.countNotAppear)
+        testfile.close()
+        testout.close()
+
+    def stcs2lst(self, input):
+        for i in range(0, 32):
+            input = input.replace(chr(i), " ")
+        input = input.split(" ")
+        return input
+
+    def writeFile(self, outfile, wordSeq, stateSeq):
+        for i, word in enumerate(wordSeq):
+            outfile.write(wordSeq[i] + "\t" + stateSeq[i] + "\n")
+        outfile.write("\n")
+
+    def A_log(self, pre_state_1, pre_state_2, state, base = math.e):
+        return -math.inf
+
+    def B_log(self, word, state, base = math.e):
+        if (word, state) in self.B_dict:
+            return math.log(self.B_dict[word, state], base)
+        return -math.inf
+
+    def B_log_not_appear(self, word, state, base = math.e):
+        find_suffix = False
+        length = min(len(word), 10)
+        max = 0
+        for i in range(1, length+1):
+            suffix = word[len(word)-i:]
+            if suffix in self.prob_suffix and (state, suffix) in self.count_state_suffix:
+                find_suffix = True
+                prob = self.count_state_suffix[state, suffix] * self.prob_suffix[suffix] / self.prob_states[state]
+                if prob > max:
+                    max = prob
+        if find_suffix:
+            return math.log(max, base)
+        else:
+            return math.log(1. / self.sumstate[state], base)
 
 
 start = time.time()
@@ -133,9 +228,12 @@ trigram.train()
 
 trainend = time.time()
 
-trigram.test("./WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_24.words")
+print("Training time: ", trainend - start, "s.")
+
+trigram.test("./WSJ_POS_CORPUS_FOR_STUDENTS/WSJ_23.words")
 
 end = time.time()
-print("Running for: ", end-start, "s.")
-print("Training time: ", trainend - start, "s.")
 print("Test time: ", end - trainend, "s.")
+
+print("Running for: ", end-start, "s.")
+
