@@ -25,6 +25,7 @@
 
 7. The **accuracy** of basic version running on `WSJ_24.word` is `94.05%`.
 
+8. The program will print the running time for train and test, and the total running time.
 ## Additional Work
 
 + Unknown words. 
