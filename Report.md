@@ -1,6 +1,6 @@
 # NLP: Assignment 4
 
-##### Yunhao Li, NetID: yl6220
+##### Yunhao Li, NetID: 
 ##### Mar/04/2019
 
 ## Basic Implementation
